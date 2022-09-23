@@ -130,7 +130,7 @@ class App(tk.Tk):
         if self.color and self.img:
             points = self.select_region(event.x, event.y)
             for p in points:
-                self.canvas.create_line(p.x, p.y, p.x+1, p.y, fill='black')
+                self.canvas.create_line(p.x, p.y, p.x+1, p.y, fill='red')
 
     def select_region(self, x, y) -> list[Point]:
         st = Point(x, y).init_outline(self.img, self.color)
