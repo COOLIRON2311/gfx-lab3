@@ -1,14 +1,53 @@
 import tkinter as tk
 from dataclasses import dataclass
-from queue import Queue
+from enum import Enum
 from tkinter import filedialog
 from PIL import Image, ImageTk
-
 Color = tuple[int, int, int]
+
+
+class Direction(Enum):
+    Down = 0
+    DownRight = 1
+    Right = 2
+    UpRight = 3
+    Up = 4
+    UpLeft = 5
+    Left = 6
+    DownLeft = 7
+
+    def apply_to(self, point: 'Point') -> 'Point':
+        match self:
+            case Direction.Down:
+                return Point(point.x, point.y + 1)
+            case Direction.DownRight:
+                return Point(point.x + 1, point.y + 1)
+            case Direction.Right:
+                return Point(point.x + 1, point.y)
+            case Direction.UpRight:
+                return Point(point.x + 1, point.y - 1)
+            case Direction.Up:
+                return Point(point.x, point.y - 1)
+            case Direction.UpLeft:
+                return Point(point.x - 1, point.y - 1)
+            case Direction.Left:
+                return Point(point.x - 1, point.y)
+            case Direction.DownLeft:
+                return Point(point.x - 1, point.y + 1)
+
+    def counter_clockwise90(self):
+        return Direction((self.value - 2) % 8)
+
+    def inc(self):
+        return Direction((self.value + 1) % 8)
+
+    def reverse(self):
+        return Direction((self.value + 4) % 8)
 
 
 @dataclass
 class Point:
+    TOLERANCE = 10
     x: int
     y: int
     # flag: bool
@@ -20,9 +59,34 @@ class Point:
         col1 = self.get_col(img)
         return sum((col1[i] - col2[i]) ** 2 for i in range(3)) ** 0.5
 
+    def neighborhood(self, start: 'Direction'):
+        yield (start, start.apply_to(self))
+        i = start.inc()
+        while i != start:
+            yield (i, i.apply_to(self))
+            i = i.inc()
+
+    def next_point(self, img: Image.Image, direction: 'Direction', col: Color):
+        for d, p in self.neighborhood(direction):
+            if p.x < 0 or p.y < 0 or p.x >= img.width or p.y >= img.height:
+                continue
+            if p.compare(img, col) < self.TOLERANCE:
+                return (d, p)
+        return (direction, None)
+
+    def start_outline(self, img: Image.Image, col: Color):
+        st = self
+        while st.compare(img, col) < self.TOLERANCE:
+            st = Point(st.x+1, st.y)
+        st = Point(st.x-1, st.y)
+
+        while st.compare(img, col) < self.TOLERANCE:
+            st = Point(st.x, st.y-1)
+        st = Point(st.x, st.y+1)
+        return st
+
 
 class App(tk.Tk):
-    TOLERANCE = 10
     canvas: tk.Canvas
     img: Image.Image
     imgtk: ImageTk.PhotoImage
@@ -36,18 +100,18 @@ class App(tk.Tk):
 
     def create_widgets(self):
         self.canvas = tk.Canvas(self, width=100, height=10)
-        self.scale = tk.Scale(self, from_=0, to=255, orient=tk.HORIZONTAL, label='Tolerance', command=self.set_tolerance)
+        self.scale = tk.Scale(self, from_=0, to=255, orient=tk.HORIZONTAL,
+                              label='Tolerance', command=self.set_tolerance)
         self.button_open = tk.Button(self, text='Open image', command=self.open_image)
         self.canvas.pack()
         self.scale.pack(padx=10, pady=10)
         self.button_open.pack(padx=10, pady=10)
-        self.scale.set(self.TOLERANCE)
+        self.scale.set(Point.TOLERANCE)
         self.canvas.bind('<Button-1>', self.select_color)
         self.canvas.bind('<Button-3>', self.select_point)
 
     def open_image(self):
-        path = 'flag.png'
-        # path = filedialog.askopenfilename()
+        path = filedialog.askopenfilename()
         if not path:
             return
         self.img = Image.open(path).convert('RGB')
@@ -57,7 +121,7 @@ class App(tk.Tk):
         self.scale.config(length=self.img.width - 20)
 
     def set_tolerance(self, value):
-        self.TOLERANCE = int(value)
+        Point.TOLERANCE = int(value)
 
     def select_color(self, event: tk.Event):
         self.color = self.img.getpixel((event.x, event.y))
@@ -69,18 +133,16 @@ class App(tk.Tk):
                 self.canvas.create_line(p.x, p.y, p.x+1, p.y, fill='black')
 
     def select_region(self, x, y) -> list[Point]:
-        st = Point(x, y)
-        points = []
-
-        while st.compare(self.img, self.color) < self.TOLERANCE:
-            st = Point(st.x+1, st.y)
-        st = Point(st.x-1, st.y)
-
-        while st.compare(self.img, self.color) < self.TOLERANCE:
-            st = Point(st.x, st.y-1)
-        st = Point(st.x, st.y+1)
-
-        points.append(st)
+        st = Point(x, y).start_outline(self.img, self.color)
+        d = Direction.Down
+        p = st
+        points = [st]
+        while True:
+            d, np = p.next_point(self.img, d.counter_clockwise90(), self.color)
+            if np is None or np == st:
+                break
+            points.append(np)
+            p = np
         return points
 
 
