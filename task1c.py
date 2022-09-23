@@ -38,12 +38,8 @@ class Direction(Enum):
     def counter_clockwise90(self):
         return Direction((self.value - 2) % 8)
 
-    def inc(self):
+    def next(self):
         return Direction((self.value + 1) % 8)
-
-    def reverse(self):
-        return Direction((self.value + 4) % 8)
-
 
 @dataclass
 class Point:
@@ -59,12 +55,12 @@ class Point:
         col1 = self.get_col(img)
         return sum((col1[i] - col2[i]) ** 2 for i in range(3)) ** 0.5
 
-    def neighborhood(self, start: 'Direction'):
-        yield (start, start.apply_to(self))
-        i = start.inc()
-        while i != start:
+    def neighborhood(self, direction: 'Direction'):
+        yield (direction, direction.apply_to(self))
+        i = direction.next()
+        while i != direction:
             yield (i, i.apply_to(self))
-            i = i.inc()
+            i = i.next()
 
     def next_point(self, img: Image.Image, direction: 'Direction', col: Color):
         for d, p in self.neighborhood(direction):
@@ -74,13 +70,16 @@ class Point:
                 return (d, p)
         return (direction, None)
 
-    def start_outline(self, img: Image.Image, col: Color):
+    def in_bounds(self, img: Image.Image):
+        return 0 <= self.x < img.width and 0 <= self.y < img.height
+
+    def init_outline(self, img: Image.Image, col: Color):
         st = self
-        while st.compare(img, col) < self.TOLERANCE:
+        while st.in_bounds(img) and st.compare(img, col) < self.TOLERANCE:
             st = Point(st.x+1, st.y)
         st = Point(st.x-1, st.y)
 
-        while st.compare(img, col) < self.TOLERANCE:
+        while st.in_bounds(img) and st.compare(img, col) < self.TOLERANCE:
             st = Point(st.x, st.y-1)
         st = Point(st.x, st.y+1)
         return st
@@ -109,6 +108,7 @@ class App(tk.Tk):
         self.scale.set(Point.TOLERANCE)
         self.canvas.bind('<Button-1>', self.select_color)
         self.canvas.bind('<Button-3>', self.select_point)
+        self.bind('<Escape>', self.clear)
 
     def open_image(self):
         path = filedialog.askopenfilename()
@@ -133,7 +133,7 @@ class App(tk.Tk):
                 self.canvas.create_line(p.x, p.y, p.x+1, p.y, fill='black')
 
     def select_region(self, x, y) -> list[Point]:
-        st = Point(x, y).start_outline(self.img, self.color)
+        st = Point(x, y).init_outline(self.img, self.color)
         d = Direction.Down
         p = st
         points = [st]
@@ -144,6 +144,10 @@ class App(tk.Tk):
             points.append(np)
             p = np
         return points
+
+    def clear(self, _):
+        self.canvas.delete('all')
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgtk)
 
 
 if __name__ == '__main__':
