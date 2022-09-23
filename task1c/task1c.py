@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from tkinter import filedialog
 from PIL import Image, ImageTk
+
 Color = tuple[int, int, int]
 
 
@@ -41,6 +42,7 @@ class Direction(Enum):
     def next(self):
         return Direction((self.value + 1) % 8)
 
+
 @dataclass
 class Point:
     TOLERANCE = 10
@@ -62,7 +64,7 @@ class Point:
             yield (i, i.apply_to(self))
             i = i.next()
 
-    def next_point(self, img: Image.Image, direction: 'Direction', col: Color):
+    def next_point(self, img: Image.Image, direction: Direction, col: Color):
         for d, p in self.neighborhood(direction):
             if p.x < 0 or p.y < 0 or p.x >= img.width or p.y >= img.height:
                 continue
@@ -70,10 +72,10 @@ class Point:
                 return (d, p)
         return (direction, None)
 
-    def in_bounds(self, img: Image.Image):
+    def in_bounds(self, img: Image.Image) -> bool:
         return 0 <= self.x < img.width and 0 <= self.y < img.height
 
-    def init_outline(self, img: Image.Image, col: Color):
+    def init_outline(self, img: Image.Image, col: Color) -> 'Point':
         st = self
         while st.in_bounds(img) and st.compare(img, col) < self.TOLERANCE:
             st = Point(st.x+1, st.y)
