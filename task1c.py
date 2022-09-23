@@ -11,7 +11,7 @@ Color = tuple[int, int, int]
 class Point:
     x: int
     y: int
-    flag: bool
+    # flag: bool
 
     def get_col(self, img: Image.Image) -> Color:
         return img.getpixel((self.x, self.y))
@@ -22,7 +22,7 @@ class Point:
 
 
 class App(tk.Tk):
-    TOLERANCE = 0.1
+    TOLERANCE = 10
     canvas: tk.Canvas
     img: Image.Image
     imgtk: ImageTk.PhotoImage
@@ -36,20 +36,28 @@ class App(tk.Tk):
 
     def create_widgets(self):
         self.canvas = tk.Canvas(self, width=100, height=10)
+        self.scale = tk.Scale(self, from_=0, to=255, orient=tk.HORIZONTAL, label='Tolerance', command=self.set_tolerance)
         self.button_open = tk.Button(self, text='Open image', command=self.open_image)
         self.canvas.pack()
+        self.scale.pack(padx=10, pady=10)
         self.button_open.pack(padx=10, pady=10)
+        self.scale.set(self.TOLERANCE)
         self.canvas.bind('<Button-1>', self.select_color)
         self.canvas.bind('<Button-3>', self.select_point)
 
     def open_image(self):
-        path = filedialog.askopenfilename()
+        path = 'flag.png'
+        # path = filedialog.askopenfilename()
         if not path:
             return
         self.img = Image.open(path).convert('RGB')
         self.imgtk = ImageTk.PhotoImage(self.img)
         self.canvas.config(width=self.img.width, height=self.img.height)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgtk)
+        self.scale.config(length=self.img.width - 20)
+
+    def set_tolerance(self, value):
+        self.TOLERANCE = int(value)
 
     def select_color(self, event: tk.Event):
         self.color = self.img.getpixel((event.x, event.y))
@@ -58,16 +66,19 @@ class App(tk.Tk):
         if self.color and self.img:
             points = self.select_region(event.x, event.y)
             for p in points:
-                self.canvas.create_rectangle(p.x, p.y, p.x + 1, p.y + 1, fill='red')
+                self.canvas.create_line(p.x, p.y, p.x+1, p.y, fill='black')
 
     def select_region(self, x, y) -> list[Point]:
-        # q: Queue[Point] = Queue()
-        st = Point(x, y, False)
+        st = Point(x, y)
         points = []
 
         while st.compare(self.img, self.color) < self.TOLERANCE:
-            st = Point(st.x, st.y+1, False)
-        st = Point(st.x, st.y-1, False)
+            st = Point(st.x+1, st.y)
+        st = Point(st.x-1, st.y)
+
+        while st.compare(self.img, self.color) < self.TOLERANCE:
+            st = Point(st.x, st.y-1)
+        st = Point(st.x, st.y+1)
 
         points.append(st)
         return points
