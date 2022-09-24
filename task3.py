@@ -1,13 +1,17 @@
 import tkinter as tk
 from tkinter import colorchooser
-import heapq
+from dataclasses import dataclass
 # import pyjion
 # pyjion.enable()
 
-Point = tuple[int, int]
 TkColor = str
 
 DIM = 500
+
+@dataclass
+class Point:
+    x: int
+    y: int
 
 class LineEq:
     p1: Point
@@ -18,14 +22,14 @@ class LineEq:
         self.p2 = p2
 
     def get_x(self, y: int) -> int:
-        if self.p1[1] == self.p2[1]:
-            return self.p1[0]
-        return (y - self.p1[1]) * (self.p2[0] - self.p1[0]) // (self.p2[1] - self.p1[1]) + self.p1[0]
+        if self.p1.x == self.p2.x:
+            return self.p1.x
+        return (y - self.p1.y) * (self.p2.x - self.p1.x) // (self.p2.y - self.p1.y) + self.p1.x
 
     def get_y(self, x: int) -> int:
-        if self.p1[0] == self.p2[0]:
-            return self.p1[1]
-        return (x - self.p1[0]) * (self.p2[1] - self.p1[1]) // (self.p2[0] - self.p1[0]) + self.p1[1]
+        if self.p1.y == self.p2.y:
+            return self.p1.y
+        return (x - self.p1.x) * (self.p2.y - self.p1.y) // (self.p2.x - self.p1.x) + self.p1.y
 
     def __repr__(self) -> str:
         return f'LineEq({self.p1}, {self.p2})'
@@ -40,7 +44,7 @@ class App(tk.Tk):
     c1: TkColor
     c2: TkColor
     c3: TkColor
-    R: int = 10  # radius
+    R: int = 5  # radius
     cpoint: str
 
     def __init__(self):
@@ -48,9 +52,9 @@ class App(tk.Tk):
         self.title('Task 3')
         self.geometry(f'{DIM}x{DIM}')
         self.resizable(False, False)
-        self.p1 = (100, 100)
-        self.p2 = (300, 150)
-        self.p3 = (100, 300)
+        self.p1 = Point(100, 100)
+        self.p2 = Point(300, 150)
+        self.p3 = Point(100, 300)
         self.c1 = 'red'
         self.c2 = 'green'
         self.c3 = 'blue'
@@ -71,12 +75,12 @@ class App(tk.Tk):
         self.canvas.bind('<Button-3>', self.choose_color)
 
     def draw_points(self):
-        self.canvas.create_oval(self.p1[0] - self.R // 2, self.p1[1] - self.R // 2, self.p1[0] + self.R // 2, self.p1[1] + self.R // 2, fill=self.c1)
-        self.canvas.create_oval(self.p2[0] - self.R // 2, self.p2[1] - self.R // 2, self.p2[0] + self.R // 2, self.p2[1] + self.R // 2, fill=self.c2)
-        self.canvas.create_oval(self.p3[0] - self.R // 2, self.p3[1] - self.R // 2, self.p3[0] + self.R // 2, self.p3[1] + self.R // 2, fill=self.c3)
+        self.canvas.create_oval(self.p1.x - self.R, self.p1.y - self.R, self.p1.x + self.R, self.p1.y + self.R, fill=self.c1)
+        self.canvas.create_oval(self.p2.x - self.R, self.p2.y - self.R, self.p2.x + self.R, self.p2.y + self.R, fill=self.c2)
+        self.canvas.create_oval(self.p3.x - self.R, self.p3.y - self.R, self.p3.x + self.R, self.p3.y + self.R, fill=self.c3)
 
     def in_point(self, p: Point, x: int, y: int) -> bool:
-        return (x - p[0]) ** 2 + (y - p[1]) ** 2 <= self.R ** 2
+        return (x - p.x) ** 2 + (y - p.y) ** 2 <= self.R ** 2
 
     def select_point(self, event: tk.Event):
         if self.in_point(self.p1, event.x, event.y):
@@ -85,7 +89,7 @@ class App(tk.Tk):
             self.cpoint = 'p2'
         elif self.in_point(self.p3, event.x, event.y):
             self.cpoint = 'p3'
-        # print(self.cpoint)
+        print(self.cpoint, event.x, event.y)
 
     def release_point(self, _):
         self.cpoint = None
@@ -94,11 +98,11 @@ class App(tk.Tk):
         if event.x < 0 or event.x > DIM or event.y < 0 or event.y > DIM:
             return
         if self.cpoint == 'p1':
-            self.p1 = (event.x, event.y)
+            self.p1 = Point(event.x, event.y)
         elif self.cpoint == 'p2':
-            self.p2 = (event.x, event.y)
+            self.p2 = Point(event.x, event.y)
         elif self.cpoint == 'p3':
-            self.p3 = (event.x, event.y)
+            self.p3 = Point(event.x, event.y)
 
         self.canvas.delete('all')
         self.draw_points()
@@ -115,36 +119,6 @@ class App(tk.Tk):
         self.draw_points()
 
     def gradient(self):
-        def sort_points(p1: Point, p2: Point, p3: Point) -> tuple[Point, Point, Point]:
-            '''Sort points by y, then by x so that p1 is the topmost point, p2 is the leftmost point, and p3 is the rightmost point'''
-            t = min(p1, p2, p3, key=lambda p: p[1])
-            p2, p3 = (p for p in (p1, p2, p3) if p != t)
-            p1 = t
-            if p2[0] > p3[0]:
-                p2, p3 = p3, p2
-            return p1, p2, p3
-
-        p1, p2, p3 = sort_points(self.p1, self.p2, self.p3)
-        l1 = LineEq(p1, p2)
-        l2 = LineEq(p1, p3)
-        print(l1, l2)
-
-        q = [p1[1], p2[1], p3[1]]
-        heapq.heapify(q)
-        a = heapq.heappop(q)
-        b = heapq.heappop(q)
-
-        for y in range(a, b + 1):
-            xleft = l1.get_x(y)
-            xright = l2.get_x(y)
-            for x in range(xleft, xright + 1):
-                self.canvas.create_line(x, y, x+1, y, fill='black')
-
-        # TODO: implement gradient
-        # 1. get line equations
-        # 2. get xleft and xright for each y
-        # 3. get color for each x (linear interpolation)
-        # 4. draw line with color
         ...
 
 
