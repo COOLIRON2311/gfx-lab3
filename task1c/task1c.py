@@ -45,7 +45,7 @@ class Direction(Enum):
 
 @dataclass
 class Point:
-    TOLERANCE = 10
+    TOLERANCE = 50
     x: int
     y: int
     # flag: bool
