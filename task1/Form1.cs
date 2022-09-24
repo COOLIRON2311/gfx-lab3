@@ -12,6 +12,12 @@ namespace lab3
 {
     public partial class Form1 : Form
     {
+        enum Mode { Free, Line };
+
+        Mode mode = Mode.Free;
+
+        Point firstLineP;
+        Point secondLineP;
 
         Color col;
         Bitmap img;
@@ -24,6 +30,7 @@ namespace lab3
         {
             col = Color.Black;
             InitializeComponent();
+            radioButton1.Checked = true;
             pen = new Pen(col, 5);
             pen.StartCap = pen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
             img = new Bitmap(Width, Height);
@@ -46,31 +53,53 @@ namespace lab3
 
         private void pictureBox1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right)
+            if (mode == Mode.Free)
             {
-                LinearFloodFillWithImage(e.X, e.Y);
-                // img.Save("image.png");
+                if (e.Button == MouseButtons.Right)
+                {
+                    LinearFloodFillWithImage(e.X, e.Y);
+                    // img.Save("image.png");
+                }
+            }
+            else if (mode == Mode.Line)
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    firstLineP = e.Location;
+                }
+                else
+                {
+                    secondLineP = e.Location;
+                    DrawLineBresenham(firstLineP, secondLineP);
+                }
             }
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Escape)
+
+            if (mode == Mode.Free)
             {
-                img = new Bitmap(Width, Height);
-                g = Graphics.FromImage(img);
-                pictureBox1.Image = img;
+                if (e.KeyCode == Keys.Escape)
+                {
+                    img = new Bitmap(Width, Height);
+                    g = Graphics.FromImage(img);
+                    pictureBox1.Image = img;
+                }
             }
         }
 
         private void pictureBox1_MouseMove(object sender, MouseEventArgs e)
         {
-            if (mouseDown && e.Button == MouseButtons.Left)
+            if (mode == Mode.Free)
             {
-                g.DrawLine(pen, new Point(x, y), e.Location);
-                x = e.X;
-                y = e.Y;
-                pictureBox1.Image = img;
+                if (mouseDown && e.Button == MouseButtons.Left)
+                {
+                    g.DrawLine(pen, new Point(x, y), e.Location);
+                    x = e.X;
+                    y = e.Y;
+                    pictureBox1.Image = img;
+                }
             }
         }
 
@@ -215,6 +244,127 @@ namespace lab3
             pictureBox1.Image = img;
         }
 
+        private void DrawLineBresenham(Point a, Point b)
+        {
+            if(a.X>b.X)
+            {
+                Point c = a;
+                a = b;
+                b = c;
+            }    
+
+            int dx = b.X - a.X;
+            int dy = b.Y - a.Y;
+
+            float gradient = 1;
+
+            if (dy != 0)
+            {
+                gradient = Math.Abs((float)dy / dx);
+            }
+
+            int curX = a.X;
+            int curY = a.Y;
+
+            float d = 2 * dy - dx;
+
+            while (curX < b.X )
+            {
+
+                if (gradient <= 1)
+                {
+                    if (d >= 0)
+                    {
+                        curY=curY + Math.Sign(dy);
+                        d = d + 2 * (Math.Abs(dy) - dx);
+                    }
+                    else
+                    {
+                        d = d + 2 * Math.Abs(dy);
+                    }
+
+                    curX++;
+                }
+                else {
+                    if (d >= 0)
+                    {
+                        curX++;
+                        d = d + 2 * (dx - Math.Abs(dy));
+                    }
+                    else
+                    {
+                        d = d + 2 * dx;
+                    }
+
+                    curY = curY + Math.Sign(dy);
+                }
+
+                img.SetPixel(curX,curY, col);
+            }
+
+            pictureBox1.Image = img;
+        }
+
+        private void DrawLineWu(Point a, Point b)
+        {
+            if (a.X > b.X)
+            {
+                Point c = a;
+                a = b;
+                b = c;
+            }
+
+            float dx = b.X - a.X;
+            float dy = b.Y - a.Y;
+
+            float gradient = dy / dx;
+
+            float y = a.Y + gradient;
+
+
+            if (Math.Abs(gradient) < 1)
+            {
+                if (a.X > b.X)
+                {
+                    Point c = a;
+                    a = b;
+                    b = c;
+                }
+
+                for (int i = a.X + 1; i < b.X - 1; i++)
+                {
+                    float dif = (y - ((int)y)) * 256;
+                    img.SetPixel(i, (int)y, Color.FromArgb(255 - (int)(dif), col.R, col.G, col.B));
+                    img.SetPixel(i, (int)y + 1, Color.FromArgb((int)(dif), col.R, col.G, col.B));
+                    y += gradient;
+                }
+            }
+            else
+            {
+                if (a.Y > b.Y)
+                {
+                    Point c = a;
+                    a = b;
+                    b = c;
+                }
+
+                float gradient2 = dx / dy;
+                float x = a.X + gradient2;
+
+                for (int i = a.Y + 1; i < b.Y - 1; i++)
+                {
+                    float dif = (x - ((int)x)) * 256;
+                    img.SetPixel((int)x,i, Color.FromArgb(255 - (int)(dif), col.R, col.G, col.B));
+                    img.SetPixel((int)x + 1,i, Color.FromArgb((int)(dif), col.R, col.G, col.B));
+                    x += gradient2;
+                }
+            }
+
+
+
+            pictureBox1.Image = img;
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             ColorDialog colorDialog = new ColorDialog();
@@ -223,6 +373,18 @@ namespace lab3
                 col = colorDialog.Color;
                 pen = new Pen(col, 5);
             }
+        }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton1.Checked)
+                mode = Mode.Free;
+        }
+
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton2.Checked)
+                mode = Mode.Line;
         }
 
         private void button2_Click(object sender, EventArgs e)
