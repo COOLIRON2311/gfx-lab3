@@ -115,10 +115,16 @@ class App(tk.Tk):
         self.draw_points()
 
     def gradient(self):
-        p1 = min(self.p1, self.p2, self.p3, key=lambda p: p[1])
-        p2, p3 = (p for p in (self.p1, self.p2, self.p3) if p != p1)
-        if p2[0] > p3[0]:
-            p2, p3 = p3, p2
+        def sort_points(p1: Point, p2: Point, p3: Point) -> tuple[Point, Point, Point]:
+            '''Sort points by y, then by x so that p1 is the topmost point, p2 is the leftmost point, and p3 is the rightmost point'''
+            t = min(p1, p2, p3, key=lambda p: p[1])
+            p2, p3 = (p for p in (p1, p2, p3) if p != t)
+            p1 = t
+            if p2[0] > p3[0]:
+                p2, p3 = p3, p2
+            return p1, p2, p3
+
+        p1, p2, p3 = sort_points(self.p1, self.p2, self.p3)
         l1 = LineEq(p1, p2)
         l2 = LineEq(p1, p3)
         print(l1, l2)
