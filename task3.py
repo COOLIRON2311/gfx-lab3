@@ -5,6 +5,7 @@ from dataclasses import dataclass
 # pyjion.enable()
 
 TkColor = str
+Color = tuple[int, int, int]
 
 DIM = 500
 
@@ -13,7 +14,7 @@ class Point:
     x: int
     y: int
     col: tuple[int, int, int]
-    def __init__(self, x, y, col: str | tuple[int, int, int]) -> None:
+    def __init__(self, x, y, col: TkColor | Color) -> None:
         self.x = x
         self.y = y
         if isinstance(col, str):
@@ -61,9 +62,9 @@ class App(tk.Tk):
         self.title('Task 3')
         self.geometry(f'{DIM}x{DIM}')
         self.resizable(False, False)
-        self.p1 = Point(100, 100, 'red')
-        self.p2 = Point(300, 150, 'green')
-        self.p3 = Point(100, 300, 'blue')
+        self.p1 = Point(100, 100, (255, 0, 0))
+        self.p2 = Point(300, 150, (0, 255, 0))
+        self.p3 = Point(100, 300, (0, 0, 255))
         self.cpoint = None
         self.create_widgets()
         self.draw_points()
@@ -80,8 +81,8 @@ class App(tk.Tk):
         self.canvas.bind('<ButtonRelease-1>', self.release_point)
         self.canvas.bind('<Button-3>', self.choose_color)
 
-    def draw_gradient_pixel(self, x: int, y: int):
-        self.canvas.create_oval(x, y, x + 1, y + 1, fill='black')
+    def gradient_pixel(self, x: int, y: int, col: TkColor):
+        self.canvas.create_line(x, y, x + 1, y, fill=col)
 
     def draw_points(self):
         self.canvas.create_oval(self.p1.x - self.R, self.p1.y - self.R, self.p1.x + self.R, self.p1.y + self.R, fill=self.p1.col)
@@ -127,22 +128,54 @@ class App(tk.Tk):
         self.canvas.delete('all')
         self.draw_points()
 
+    def lin_col_interp(self, c1: Color, c2: Color, t: float) -> Color:
+        r = int(c1[0] + (c2[0] - c1[0]) * t)
+        g = int(c1[1] + (c2[1] - c1[1]) * t)
+        b = int(c1[2] + (c2[2] - c1[2]) * t)
+        return (r, g, b)
+
+
     def gradient(self):
+        def rgb2str(col: Color) -> TkColor:
+            return f'#{col[0]:02x}{col[1]:02x}{col[2]:02x}'
+
         p1, p2, p3 = sorted([self.p1, self.p2, self.p3], key=lambda p: p.y)
         l1 = LineEq(p1, p2)
         l2 = LineEq(p1, p3)
 
+        # compute color for p1 and p2
+        c1 = p1.to_rgb()
+        c2 = p2.to_rgb()
+        c3 = p3.to_rgb()
+        height = p3.y - p1.y
         for y in range(p1.y, p2.y + 1):
-            x1, x2 = sorted((l1.get_x(y), l2.get_x(y)))
-            width = x2 - x1
-            for x in range(x1, x2 + 1):
-                self.draw_gradient_pixel(x, y)
+            t = (y - p1.y) / height
+            cl = self.lin_col_interp(c1, c3, t)
+            cr = self.lin_col_interp(c1, c2, t)
+            xl, xr = sorted((l1.get_x(y), l2.get_x(y)))
+            for x in range(xl, xr + 1):
+                if xl == xr:
+                    t = 0
+                else:
+                    t = (x - xl) / (xr - xl)
+                cx = self.lin_col_interp(cl, cr, t)
+                self.gradient_pixel(x, y, rgb2str(cx))
 
         l1 = LineEq(p2, p3)
+        # height = p3.y - p1.y
         for y in range(p2.y, p3.y + 1):
-            x1, x2 = sorted((l1.get_x(y), l2.get_x(y)))
-            for x in range(x1, x2 + 1):
-                self.draw_gradient_pixel(x, y)
+            t = (y - p2.y) / height
+            cl = self.lin_col_interp(c1, c3, t)
+            cr = self.lin_col_interp(c2, c3, t)
+            xl, xr = sorted((l1.get_x(y), l2.get_x(y)))
+            for x in range(xl, xr + 1):
+                if xl == xr:
+                    t = 0
+                else:
+                    t = (x - xl) / (xr - xl)
+                cx = self.lin_col_interp(cl, cr, t)
+                self.gradient_pixel(x, y, rgb2str(cx))
+                # self.gradient_pixel(x, y, 'black')
 
 
 
