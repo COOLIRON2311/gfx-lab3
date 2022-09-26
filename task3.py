@@ -2,19 +2,21 @@ import tkinter as tk
 from tkinter import colorchooser
 from dataclasses import dataclass
 
-# import pyjion
-# pyjion.enable()
+import pyjion
+pyjion.enable()
 
 TkColor = str
 Color = tuple[int, int, int]
 
 DIM = 500
 
+
 @dataclass
 class Point:
     x: int
     y: int
     col: tuple[int, int, int]
+
     def __init__(self, x, y, col: TkColor | Color) -> None:
         self.x = x
         self.y = y
@@ -100,7 +102,7 @@ class App(tk.Tk):
             self.cpoint = 'p2'
         elif self.in_point(self.p3, event.x, event.y):
             self.cpoint = 'p3'
-        print(self.cpoint, event.x, event.y)
+        # print(self.cpoint, event.x, event.y)
 
     def release_point(self, _):
         self.cpoint = None
@@ -135,7 +137,6 @@ class App(tk.Tk):
         b = int(c1[2] + (c2[2] - c1[2]) * t)
         return (r, g, b)
 
-
     def gradient(self):
         def rgb2str(col: Color) -> TkColor:
             return f'#{col[0]:02x}{col[1]:02x}{col[2]:02x}'
@@ -151,11 +152,14 @@ class App(tk.Tk):
         hleft = p3.y - p1.y
         hright = p2.y - p1.y
         for y in range(p1.y, p2.y + 1):
-            tl = (y - p1.y) / hleft
-            tr = (y - p1.y) / hright
+            tl = 0 if hleft == 0 else (y - p1.y) / hleft
+            tr = 0 if hright == 0 else (y - p1.y) / hright
             cl = self.lin_col_interp(c1, c3, tl)
             cr = self.lin_col_interp(c1, c2, tr)
-            xl, xr = sorted((l1.get_x(y), l2.get_x(y)))
+            xl, xr = l1.get_x(y), l2.get_x(y)
+            if xl > xr:
+                xl, xr = xr, xl
+                cl, cr = cr, cl
             for x in range(xl, xr + 1):
                 t = 0 if xl == xr else (x - xl) / (xr - xl)
                 cx = self.lin_col_interp(cl, cr, t)
@@ -163,21 +167,22 @@ class App(tk.Tk):
 
         l1 = LineEq(p1, p3)
         l2 = LineEq(p2, p3)
-        hl = p3.y - p1.y
-        hr = p3.y - p2.y
+        hleft = p3.y - p1.y
+        hright = p3.y - p2.y
         for y in range(p2.y, p3.y + 1):
-            tl = (y - p1.y) / hl
-            tr = (y - p2.y) / hr
+            tl = 0 if hleft == 0 else (y - p1.y) / hleft
+            tr = 0 if hright == 0 else (y - p2.y) / hright
             cl = self.lin_col_interp(c1, c3, tl)
             cr = self.lin_col_interp(c2, c3, tr)
-            xl, xr = sorted((l1.get_x(y), l2.get_x(y)))
+            xl, xr = l1.get_x(y), l2.get_x(y)
+            if xl > xr:
+                xl, xr = xr, xl
+                cl, cr = cr, cl
             for x in range(xl, xr + 1):
                 t = 0 if xl == xr else (x - xl) / (xr - xl)
                 cx = self.lin_col_interp(cl, cr, t)
                 self.gradient_pixel(x, y, rgb2str(cx))
                 # self.gradient_pixel(x, y, 'black')
-
-
 
 
 if __name__ == '__main__':
