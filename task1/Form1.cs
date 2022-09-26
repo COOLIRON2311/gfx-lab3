@@ -251,7 +251,7 @@ namespace lab3
                 Point c = a;
                 a = b;
                 b = c;
-            }    
+            }
 
             int dx = b.X - a.X;
             int dy = b.Y - a.Y;
@@ -393,6 +393,8 @@ namespace lab3
             {
                 dlg.Title = "Open Image";
                 dlg.Filter = "bmp files (*.bmp)|*.bmp";
+                dlg.Filter += "|jpg files (*.jpg)|*.jpg";
+                dlg.Filter += "|png files (*.png)|*.png";
 
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
