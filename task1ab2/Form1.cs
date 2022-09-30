@@ -70,7 +70,7 @@ namespace lab3
                 else
                 {
                     secondLineP = e.Location;
-                    DrawLineBresenham(firstLineP, secondLineP);
+                    DrawLineWu(firstLineP, secondLineP);
                 }
             }
         }
@@ -204,7 +204,7 @@ namespace lab3
                 int leftBorder = p.X;
                 int rightBorder = p.X;
 
-                for (int i = p.X; i < img.Width; i++)
+                for (int i = p.X,j=0; i < img.Width; i++,j++)
                 {
                     if (img.GetPixel(i, p.Y) != targetColor)
                     {
@@ -213,10 +213,10 @@ namespace lab3
 
                     rightBorder = i;
 
-                    img.SetPixel(i, p.Y, tempImg.GetPixel(i%tempImg.Width,p.Y%tempImg.Height));
+                    img.SetPixel(i, p.Y, tempImg.GetPixel(Math.Abs(x-i+tempImg.Width/2)%tempImg.Width, Math.Abs(p.Y-y+tempImg.Height/2)%tempImg.Height));
                 }
 
-                for (int i = p.X - 1; i >= 0; i--)
+                for (int i = p.X - 1,j=0; i >= 0; i--,j++)
                 {
                     if (img.GetPixel(i, p.Y) != targetColor)
                     {
@@ -225,7 +225,7 @@ namespace lab3
 
                     leftBorder = i;
 
-                    img.SetPixel(i, p.Y, tempImg.GetPixel(i % tempImg.Width, p.Y % tempImg.Height));
+                    img.SetPixel(i, p.Y, tempImg.GetPixel(Math.Abs(x-i+tempImg.Width/2) % tempImg.Width, Math.Abs(p.Y-y+tempImg.Height/2) % tempImg.Height));
                 }
 
                 for (int i = leftBorder; i <= rightBorder; i++)
